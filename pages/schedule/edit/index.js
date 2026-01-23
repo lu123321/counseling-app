@@ -216,13 +216,25 @@ Page({
   formatDateTime(dateTimeStr) {
     if (!dateTimeStr) return '';
     
-    const date = new Date(dateTimeStr);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    
-    return `${month}月${day}日 ${hours}:${minutes}`;
+    try {
+      // 处理 YYYY-MM-DD HH:mm 格式
+      const [datePart, timePart] = dateTimeStr.split(' ');
+      const [year, month, day] = datePart.split('-');
+      const [hours, minutes] = timePart.split(':');
+      
+      return `${parseInt(month)}月${parseInt(day)}日 ${hours}:${minutes}`;
+    } catch (e) {
+      // 如果是其他格式，尝试直接转换
+      const date = new Date(dateTimeStr);
+      if (isNaN(date.getTime())) return '';
+      
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      
+      return `${parseInt(month)}月${parseInt(day)}日 ${hours}:${minutes}`;
+    }
   },
 
   updateTypeText() {
@@ -278,14 +290,21 @@ Page({
   },
 
   onStartTimeChange(e) {
-    const startTime = e.detail.value;
+    const startTime = e.detail.value; // 格式：YYYY-MM-DD HH:mm
     let endTime = this.data.formData.endTime;
     
-    // 如果结束时间早于开始时间，自动调整结束时间
+    // 如果结束时间早于开始时间，自动调整结束时间为开始时间+50分钟
     if (endTime && new Date(endTime) <= new Date(startTime)) {
       const endDate = new Date(startTime);
-      endDate.setHours(endDate.getHours() + 1);
-      endTime = endDate.toISOString().slice(0, 16).replace('T', ' ');
+      endDate.setMinutes(endDate.getMinutes() + 50);
+      
+      const year = endDate.getFullYear();
+      const month = (endDate.getMonth() + 1).toString().padStart(2, '0');
+      const day = endDate.getDate().toString().padStart(2, '0');
+      const hours = endDate.getHours().toString().padStart(2, '0');
+      const minutes = endDate.getMinutes().toString().padStart(2, '0');
+      
+      endTime = `${year}-${month}-${day} ${hours}:${minutes}`;
     }
     
     this.setData({

@@ -34,6 +34,17 @@
 
 .form-picker {
   margin-top: -8rpx;
+  width: 100%;
+}
+
+picker {
+  position: relative;
+  width: 100%;
+  z-index: 10;
+}
+
+.picker-content:active {
+  background-color: #f5f5f5;
 }
 
 .picker-content {
@@ -42,6 +53,7 @@
   align-items: center;
   padding: 24rpx 0;
   border-bottom: 1rpx solid #f0f0f0;
+  min-height: 88rpx; 
 }
 
 .picker-text {
