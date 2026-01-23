@@ -8,7 +8,8 @@
     "pages/client/select/index",
     "pages/client/detail/index",
     "pages/client/edit/index",
-    "pages/session/detail/index"
+    "pages/session/detail/index",
+    "pages/client/sessions/index"
   ],
   "window": {
     "backgroundTextStyle": "light",
