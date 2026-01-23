@@ -9,7 +9,8 @@
     "pages/client/detail/index",
     "pages/client/edit/index",
     "pages/session/detail/index",
-    "pages/client/sessions/index"
+    "pages/client/sessions/index",
+    "pages/schedule/edit/index"
   ],
   "window": {
     "backgroundTextStyle": "light",
