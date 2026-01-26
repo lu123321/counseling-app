@@ -220,6 +220,7 @@ Page({
 
   // 今日日程点击
   onTodayScheduleClick() {
+    console.log('今日日程被点击了！')
     wx.switchTab({
       url: '/pages/schedule/calendar/index'
     });

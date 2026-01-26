@@ -26,7 +26,7 @@
         <view class="picker-content">
           <text class="picker-text">{{formData.scheduleTypeText}}</text>
           <text class="picker-placeholder" wx:if="{{!formData.scheduleTypeText}}">请选择日程类型</text>
-          <image class="arrow-icon" src="/images/icons/arrow-right.png"></image>
+          <image class="arrow-icon" src="../../../static/icons/search.png"></image>
         </view>
       </picker>
     </view>
@@ -44,41 +44,68 @@
         <view class="picker-content">
           <text class="picker-text">{{formData.clientName}}</text>
           <text class="picker-placeholder" wx:if="{{!formData.clientName}}">选择来访者（可选）</text>
-          <image class="arrow-icon" src="/images/icons/arrow-right.png"></image>
+          <image class="arrow-icon" src="../../../static/icons/search.png"></image>
         </view>
       </picker>
     </view>
 
-    <!-- 开始时间 -->
     <view class="form-section">
       <view class="form-label required">开始时间</view>
+      <!-- 日期选择器 -->
       <picker 
-        mode="datetime" 
-        value="{{formData.startTime}}" 
+        mode="date" 
+        value="{{formData.startDate}}" 
         start="{{minDate}}"
-        bindchange="onStartTimeChange"
-        class="form-picker"
+        bindchange="onStartDateChange"
+        class="time-picker-container"
       >
-        <view class="picker-content">
-          <text class="picker-text">{{formData.startTimeText}}</text>
-          <image class="arrow-icon" src="/images/icons/arrow-right.png"></image>
+        <view class="picker-display">
+          <text class="picker-text">{{formData.startDateText || '请选择日期'}}</text>
+          <image class="arrow-icon" src="../../../static/icons/search.png"></image>
+        </view>
+      </picker>
+      <!-- 时间选择器 -->
+      <picker 
+        mode="time" 
+        value="{{formData.startTime}}" 
+        bindchange="onStartTimeChangeSingle"
+        class="time-picker-container"
+        style="margin-top: 10rpx;"
+      >
+        <view class="picker-display">
+          <text class="picker-text">{{formData.startTimeText || '请选择时间'}}</text>
+          <image class="arrow-icon" src="../../../static/icons/search.png"></image>
         </view>
       </picker>
     </view>
 
-    <!-- 结束时间 -->
+    <!-- 结束时间：拆分为日期+时间两个picker -->
     <view class="form-section">
       <view class="form-label required">结束时间</view>
+      <!-- 日期选择器 -->
       <picker 
-        mode="datetime" 
-        value="{{formData.endTime}}" 
-        start="{{formData.startTime}}"
-        bindchange="onEndTimeChange"
-        class="form-picker"
+        mode="date" 
+        value="{{formData.endDate}}" 
+        start="{{formData.startDate || minDate}}"
+        bindchange="onEndDateChange"
+        class="time-picker-container"
       >
-        <view class="picker-content">
-          <text class="picker-text">{{formData.endTimeText}}</text>
-          <image class="arrow-icon" src="/images/icons/arrow-right.png"></image>
+        <view class="picker-display">
+          <text class="picker-text">{{formData.endDateText || '请选择日期'}}</text>
+          <image class="arrow-icon" src="../../../static/icons/search.png"></image>
+        </view>
+      </picker>
+      <!-- 时间选择器 -->
+      <picker 
+        mode="time" 
+        value="{{formData.endTime}}" 
+        bindchange="onEndTimeChangeSingle"
+        class="time-picker-container"
+        style="margin-top: 10rpx;"
+      >
+        <view class="picker-display">
+          <text class="picker-text">{{formData.endTimeText || '请选择时间'}}</text>
+          <image class="arrow-icon" src="../../../static/icons/search.png"></image>
         </view>
       </picker>
     </view>
@@ -122,7 +149,7 @@
         >
           <image 
             class="color-check" 
-            src="/images/icons/check-white.png" 
+            src="../../../static/icons/search.png" 
             wx:if="{{formData.color === item}}"
           ></image>
         </view>
@@ -141,7 +168,7 @@
       >
         <view class="picker-content">
           <text class="picker-text">{{formData.remindTypeText}}</text>
-          <image class="arrow-icon" src="/images/icons/arrow-right.png"></image>
+          <image class="arrow-icon" src="../../../static/icons/search.png"></image>
         </view>
       </picker>
     </view>
@@ -211,7 +238,7 @@
           >
             <view class="month-day-content">
               每月 <text class="highlight">{{formData.recurringDayOfMonth || 1}}</text> 日
-              <image class="arrow-icon" src="/images/icons/arrow-right.png"></image>
+              <image class="arrow-icon" src="../../../static/icons/search.png"></image>
             </view>
           </picker>
         </view>
@@ -229,7 +256,7 @@
           <view class="picker-content">
             <text class="picker-text">{{formData.recurringEndDateText}}</text>
             <text class="picker-placeholder" wx:if="{{!formData.recurringEndDateText}}">选择结束日期（可选）</text>
-            <image class="arrow-icon" src="/images/icons/arrow-right.png"></image>
+            <image class="arrow-icon" src="../../../static/icons/search.png"></image>
           </view>
         </picker>
       </view>

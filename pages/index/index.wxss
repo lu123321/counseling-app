@@ -113,6 +113,7 @@
   justify-content: space-around;
   box-shadow: 0 12rpx 40rpx rgba(24, 144, 255, 0.2);
   color: white;
+  pointer-events: auto;
 }
 
 .stat-item {
@@ -120,6 +121,18 @@
   flex-direction: column;
   align-items: center;
   flex: 1;
+  /* 强制设置可点击区域 */
+  width: 100%;
+  height: 100%;
+  /* 扩大点击热区 */
+  padding: 20rpx 0;
+  /* 核心：开启指针事件，确保点击生效 */
+  pointer-events: auto;
+  /* 提高层级，避免被遮挡 */
+  z-index: 10;
+  /* 可选：添加点击反馈 */
+  cursor: pointer;
+  position: relative;
 }
 
 .stat-value {

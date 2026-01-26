@@ -56,6 +56,28 @@ picker {
   min-height: 88rpx; 
 }
 
+
+.time-picker-container {
+  width: 100%;
+  position: relative;
+  z-index: 999;
+}
+
+/* 显示区域 */
+.picker-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+  height: 100%;
+}
+
+.time-picker-container:active .picker-display {
+  background-color: #f5f5f5;
+}
+
+
 .picker-text {
   font-size: 28rpx;
   color: #333;

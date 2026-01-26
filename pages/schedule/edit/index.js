@@ -4,7 +4,7 @@ Page({
     isEditMode: false,
     scheduleId: null,
     
-    // 表单数据
+    // 表单数据：拆分日期和时间字段（核心修改）
     formData: {
       title: '',
       scheduleType: 1, // 1=咨询
@@ -13,10 +13,17 @@ Page({
       clientId: null,
       clientName: '',
       clientIndex: -1,
-      startTime: '',
-      startTimeText: '',
-      endTime: '',
-      endTimeText: '',
+      // 拆分开始时间为日期+时间
+      startDate: '',    // 格式：YYYY-MM-DD
+      startDateText: '',// 显示：X月X日
+      startTime: '',    // 格式：HH:mm
+      startTimeText: '',// 显示：HH:mm
+      // 拆分结束时间为日期+时间
+      endDate: '',      // 格式：YYYY-MM-DD
+      endDateText: '',  // 显示：X月X日
+      endTime: '',      // 格式：HH:mm
+      endTimeText: '',  // 显示：HH:mm
+      // 原有字段不变
       location: '',
       description: '',
       color: '#1890ff',
@@ -31,7 +38,7 @@ Page({
       recurringEndDateText: ''
     },
     
-    // 选择器数据
+    // 选择器数据（不变）
     scheduleTypes: [
       { value: 1, label: '咨询', color: '#1890ff' },
       { value: 2, label: '督导', color: '#52c41a' },
@@ -82,7 +89,7 @@ Page({
     // 加载来访者数据
     this.loadClients();
     
-    // 初始化时间
+    // 初始化时间（调整为拆分日期+时间）
     this.initTime();
     
     // 设置初始文本
@@ -91,27 +98,31 @@ Page({
   },
 
   onReady() {
-    // 监听字段变化
     this.watchFormData();
   },
 
   watchFormData() {
-    // 监听日程类型变化，显示/隐藏来访者字段
     this.setData({
       showClientField: this.data.formData.scheduleType === 1
     });
   },
 
   loadScheduleData(scheduleId) {
-    // Mock数据：加载已有的日程数据
     setTimeout(() => {
       const mockSchedule = this.getMockSchedule(scheduleId);
       
-      // 转换数据格式
+      // 转换数据格式：拆分日期和时间
       const scheduleTypeIndex = this.data.scheduleTypes.findIndex(item => item.value === mockSchedule.scheduleType);
       const remindTypeIndex = this.data.remindTypes.findIndex(item => item.value === mockSchedule.remindType);
       const clientIndex = mockSchedule.clientId ? 
         this.data.clients.findIndex(client => client.id === mockSchedule.clientId) : -1;
+      
+      // 拆分开始时间
+      const [startDate, startTime] = mockSchedule.startTime.split(' ');
+      const startDateText = this.formatDate(startDate);
+      // 拆分结束时间
+      const [endDate, endTime] = mockSchedule.endTime.split(' ');
+      const endDateText = this.formatDate(endDate);
       
       this.setData({
         'formData.title': mockSchedule.title,
@@ -120,10 +131,17 @@ Page({
         'formData.clientId': mockSchedule.clientId,
         'formData.clientName': mockSchedule.clientName,
         'formData.clientIndex': clientIndex,
-        'formData.startTime': mockSchedule.startTime,
-        'formData.startTimeText': this.formatDateTime(mockSchedule.startTime),
-        'formData.endTime': mockSchedule.endTime,
-        'formData.endTimeText': this.formatDateTime(mockSchedule.endTime),
+        // 赋值拆分后的开始时间
+        'formData.startDate': startDate,
+        'formData.startDateText': startDateText,
+        'formData.startTime': startTime,
+        'formData.startTimeText': startTime,
+        // 赋值拆分后的结束时间
+        'formData.endDate': endDate,
+        'formData.endDateText': endDateText,
+        'formData.endTime': endTime,
+        'formData.endTimeText': endTime,
+        // 原有字段不变
         'formData.location': mockSchedule.location || '',
         'formData.description': mockSchedule.description || '',
         'formData.color': mockSchedule.color,
@@ -174,7 +192,6 @@ Page({
   },
 
   loadClients() {
-    // Mock数据：来访者列表
     setTimeout(() => {
       const mockClients = [
         { id: 1, name: '王小明', clientNo: 'C2024001' },
@@ -190,50 +207,120 @@ Page({
     }, 200);
   },
 
+  // 初始化时间：拆分日期+时间（核心修改）
   initTime() {
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const day = now.getDate().toString().padStart(2, '0');
+    const today = `${year}-${month}-${day}`;
+    const todayText = this.formatDate(today);
     
     // 默认开始时间：当前时间的下一个整点或半点
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
-    const defaultStartHour = currentMinute < 30 ? currentHour : currentHour + 1;
-    const defaultStartTime = `${today} ${defaultStartHour.toString().padStart(2, '0')}:30`;
+    const defaultStartHour = (currentMinute < 30 ? currentHour : currentHour + 1).toString().padStart(2, '0');
+    const defaultStartTime = `${defaultStartHour}:30`;
     
-    // 默认结束时间：开始时间+50分钟（咨询的常见时长）
-    const defaultEndTime = `${today} ${(defaultStartHour + 1).toString().padStart(2, '0')}:20`;
+    // 默认结束时间：开始时间+50分钟
+    const startDate = new Date(`${today} ${defaultStartTime}`);
+    startDate.setMinutes(startDate.getMinutes() + 50);
+    const endHour = startDate.getHours().toString().padStart(2, '0');
+    const endMinute = startDate.getMinutes().toString().padStart(2, '0');
+    const defaultEndTime = `${endHour}:${endMinute}`;
     
-    if (!this.data.formData.startTime) {
+    this.setData({
+      // 开始时间
+      'formData.startDate': this.data.formData.startDate || today,
+      'formData.startDateText': this.data.formData.startDateText || todayText,
+      'formData.startTime': this.data.formData.startTime || defaultStartTime,
+      'formData.startTimeText': this.data.formData.startTimeText || defaultStartTime,
+      // 结束时间
+      'formData.endDate': this.data.formData.endDate || today,
+      'formData.endDateText': this.data.formData.endDateText || todayText,
+      'formData.endTime': this.data.formData.endTime || defaultEndTime,
+      'formData.endTimeText': this.data.formData.endTimeText || defaultEndTime
+    });
+    
+    console.log('初始化时间完成:', {
+      startDate: today,
+      startTime: defaultStartTime,
+      endDate: today,
+      endTime: defaultEndTime
+    });
+  },
+
+  // 格式化日期：YYYY-MM-DD → X月X日
+  formatDate(dateStr) {
+    if (!dateStr) return '';
+    const [year, month, day] = dateStr.split('-');
+    return `${parseInt(month)}月${parseInt(day)}日`;
+  },
+
+  // 开始日期选择事件
+  onStartDateChange(e) {
+    const selectedDate = e.detail.value;
+    const dateText = this.formatDate(selectedDate);
+    this.setData({
+      'formData.startDate': selectedDate,
+      'formData.startDateText': dateText
+    });
+    // 若结束日期早于开始日期，自动同步结束日期
+    if (this.data.formData.endDate && new Date(this.data.formData.endDate) < new Date(selectedDate)) {
       this.setData({
-        'formData.startTime': defaultStartTime,
-        'formData.startTimeText': this.formatDateTime(defaultStartTime),
-        'formData.endTime': defaultEndTime,
-        'formData.endTimeText': this.formatDateTime(defaultEndTime)
+        'formData.endDate': selectedDate,
+        'formData.endDateText': dateText
       });
     }
   },
 
-  formatDateTime(dateTimeStr) {
-    if (!dateTimeStr) return '';
+  // 开始时间选择事件
+  onStartTimeChangeSingle(e) {
+    const selectedTime = e.detail.value;
+    this.setData({
+      'formData.startTime': selectedTime,
+      'formData.startTimeText': selectedTime
+    });
+    // 自动校验结束时间
+    this.checkEndTime();
+  },
+
+  // 结束日期选择事件
+  onEndDateChange(e) {
+    const selectedDate = e.detail.value;
+    const dateText = this.formatDate(selectedDate);
+    this.setData({
+      'formData.endDate': selectedDate,
+      'formData.endDateText': dateText
+    });
+    // 自动校验结束时间
+    this.checkEndTime();
+  },
+
+  // 结束时间选择事件
+  onEndTimeChangeSingle(e) {
+    const selectedTime = e.detail.value;
+    this.setData({
+      'formData.endTime': selectedTime,
+      'formData.endTimeText': selectedTime
+    });
+    // 自动校验结束时间
+    this.checkEndTime();
+  },
+
+  // 校验结束时间是否晚于开始时间
+  checkEndTime() {
+    const { startDate, startTime, endDate, endTime } = this.data.formData;
+    if (!startDate || !startTime || !endDate || !endTime) return;
     
-    try {
-      // 处理 YYYY-MM-DD HH:mm 格式
-      const [datePart, timePart] = dateTimeStr.split(' ');
-      const [year, month, day] = datePart.split('-');
-      const [hours, minutes] = timePart.split(':');
-      
-      return `${parseInt(month)}月${parseInt(day)}日 ${hours}:${minutes}`;
-    } catch (e) {
-      // 如果是其他格式，尝试直接转换
-      const date = new Date(dateTimeStr);
-      if (isNaN(date.getTime())) return '';
-      
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      const day = date.getDate().toString().padStart(2, '0');
-      const hours = date.getHours().toString().padStart(2, '0');
-      const minutes = date.getMinutes().toString().padStart(2, '0');
-      
-      return `${parseInt(month)}月${parseInt(day)}日 ${hours}:${minutes}`;
+    const startFullTime = `${startDate} ${startTime}`;
+    const endFullTime = `${endDate} ${endTime}`;
+    
+    if (new Date(endFullTime) <= new Date(startFullTime)) {
+      wx.showToast({
+        title: '结束时间需晚于开始时间',
+        icon: 'none'
+      });
     }
   },
 
@@ -255,7 +342,7 @@ Page({
     }
   },
 
-  // 事件处理函数
+  // 原有事件不变
   onTypeChange(e) {
     const index = e.detail.value;
     const selectedType = this.data.scheduleTypes[index];
@@ -287,40 +374,6 @@ Page({
         'formData.clientIndex': -1
       });
     }
-  },
-
-  onStartTimeChange(e) {
-    const startTime = e.detail.value; // 格式：YYYY-MM-DD HH:mm
-    let endTime = this.data.formData.endTime;
-    
-    // 如果结束时间早于开始时间，自动调整结束时间为开始时间+50分钟
-    if (endTime && new Date(endTime) <= new Date(startTime)) {
-      const endDate = new Date(startTime);
-      endDate.setMinutes(endDate.getMinutes() + 50);
-      
-      const year = endDate.getFullYear();
-      const month = (endDate.getMonth() + 1).toString().padStart(2, '0');
-      const day = endDate.getDate().toString().padStart(2, '0');
-      const hours = endDate.getHours().toString().padStart(2, '0');
-      const minutes = endDate.getMinutes().toString().padStart(2, '0');
-      
-      endTime = `${year}-${month}-${day} ${hours}:${minutes}`;
-    }
-    
-    this.setData({
-      'formData.startTime': startTime,
-      'formData.startTimeText': this.formatDateTime(startTime),
-      'formData.endTime': endTime,
-      'formData.endTimeText': this.formatDateTime(endTime)
-    });
-  },
-
-  onEndTimeChange(e) {
-    const endTime = e.detail.value;
-    this.setData({
-      'formData.endTime': endTime,
-      'formData.endTimeText': this.formatDateTime(endTime)
-    });
   },
 
   onColorSelect(e) {
@@ -382,12 +435,15 @@ Page({
     const date = e.detail.value;
     this.setData({
       'formData.recurringEndDate': date,
-      'formData.recurringEndDateText': date ? `${date.split('-')[1]}月${date.split('-')[2]}日` : ''
+      'formData.recurringEndDateText': date ? this.formatDate(date) : ''
     });
   },
 
   onFormSubmit(e) {
     const formData = e.detail.value;
+    // 合并开始/结束时间为 YYYY-MM-DD HH:mm
+    const startFullTime = `${this.data.formData.startDate} ${this.data.formData.startTime}`;
+    const endFullTime = `${this.data.formData.endDate} ${this.data.formData.endTime}`;
     
     // 验证必填字段
     if (!formData.title || !formData.title.trim()) {
@@ -398,7 +454,7 @@ Page({
       return;
     }
     
-    if (!this.data.formData.startTime) {
+    if (!startFullTime) {
       wx.showToast({
         title: '请选择开始时间',
         icon: 'none'
@@ -406,7 +462,7 @@ Page({
       return;
     }
     
-    if (!this.data.formData.endTime) {
+    if (!endFullTime) {
       wx.showToast({
         title: '请选择结束时间',
         icon: 'none'
@@ -415,7 +471,7 @@ Page({
     }
     
     // 验证时间逻辑
-    if (new Date(this.data.formData.endTime) <= new Date(this.data.formData.startTime)) {
+    if (new Date(endFullTime) <= new Date(startFullTime)) {
       wx.showToast({
         title: '结束时间必须晚于开始时间',
         icon: 'none'
@@ -428,8 +484,8 @@ Page({
       ...formData,
       scheduleType: this.data.formData.scheduleType,
       clientId: this.data.formData.clientId,
-      startTime: this.data.formData.startTime,
-      endTime: this.data.formData.endTime,
+      startTime: startFullTime,  // 合并后的开始时间
+      endTime: endFullTime,      // 合并后的结束时间
       color: this.data.formData.color,
       remindType: this.data.formData.remindType,
       isRecurring: this.data.formData.isRecurring,

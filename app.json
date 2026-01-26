@@ -10,7 +10,11 @@
     "pages/client/edit/index",
     "pages/session/detail/index",
     "pages/client/sessions/index",
-    "pages/schedule/edit/index"
+    "pages/schedule/edit/index",
+    "pages/finance/overview/index",
+    "pages/subscription/plans/index",
+    "pages/schedule/detail/index"
+    
   ],
   "window": {
     "backgroundTextStyle": "light",
