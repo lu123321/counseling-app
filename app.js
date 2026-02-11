@@ -5,7 +5,7 @@ App({
     userInfo: null,
     token: null,
     subscriptionStatus: 0, // 0: 未订阅, 1: 已订阅
-    baseUrl: 'https://api.example.com', // Mock API地址
+    baseUrl: 'http://192.168.71.3:8080', // Mock API地址
     mockData: true // 是否使用模拟数据
   },
 
@@ -78,7 +78,6 @@ App({
     }
   },
 
-  // 检查登录状态
   checkLogin() {
     const token = wx.getStorageSync('token');
     const userInfo = wx.getStorageSync('userInfo');
@@ -86,37 +85,31 @@ App({
     if (token && userInfo) {
       this.globalData.token = token;
       this.globalData.userInfo = userInfo;
+      console.log('已获取缓存登录信息');
+    } else {
+      console.log('未登录，将跳转登录页面');
+      // 未登录：跳转登录页面（非TabBar页面用navigateTo）
+      // 注意：避免重复跳转，仅在非登录页面时跳转
+      const pages = getCurrentPages();
+      if (pages.length === 0 || pages[0].route !== 'pages/login/login') {
+        wx.navigateTo({
+          url: '/pages/login/login'
+        });
+      }
     }
   },
 
-  // 登录方法
+  /**
+   * 登录方法（保留，供其他页面调用）
+   */
   login() {
     return new Promise((resolve, reject) => {
       wx.login({
         success: (loginRes) => {
           if (loginRes.code) {
-            // 模拟登录成功
-            const mockUserInfo = {
-              id: 1,
-              nickname: '咨询师张老师',
-              avatar: 'https://img.yzcdn.cn/vant/cat.jpeg',
-              phone: '13800138000',
-              realName: '张三',
-              email: 'zhangsan@example.com',
-              role: 1,
-              qualification: '国家二级心理咨询师'
-            };
-            
-            // 保存到全局和本地存储
-            this.globalData.userInfo = mockUserInfo;
-            this.globalData.token = 'mock-token-' + Date.now();
-            
-            wx.setStorageSync('userInfo', mockUserInfo);
-            wx.setStorageSync('token', this.globalData.token);
-            
-            resolve(mockUserInfo);
+            resolve(loginRes.code);
           } else {
-            reject(new Error('登录失败'));
+            reject(new Error('获取登录凭证失败'));
           }
         },
         fail: reject

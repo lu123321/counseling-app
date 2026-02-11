@@ -91,9 +91,6 @@
 }
 
 /* 滚动条美化 */
-::-webkit-scrollbar {
-  width: 4rpx;
-}
 
 ::-webkit-scrollbar-track {
   background: transparent;

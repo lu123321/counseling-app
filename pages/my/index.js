@@ -1,7 +1,7 @@
 // pages/my/index.js
 const app = getApp();
 const utils = require('../../utils/util.js');
-const mockApi = require('../../utils/mockData.js').mockApi;
+const api = require('../../utils/api.js');
 
 Page({
   data: {
@@ -36,6 +36,7 @@ Page({
 
   onShow() {
     // 每次显示页面时刷新数据
+    console.log("进入页面")
     this.loadUserData();
   },
 
@@ -56,34 +57,62 @@ Page({
   // 加载用户信息
   async loadUserInfo() {
     try {
+      console.log("开始加载用户信息");
       const userInfo = app.globalData.userInfo || wx.getStorageSync('userInfo');
-      
+      console.log(userInfo)
       if (userInfo) {
         this.setData({ userInfo });
-      } else {
-        // 如果没有用户信息，模拟登录
-        const result = await mockApi.getUserInfo();
-        if (result.code === 200) {
-          this.setData({ userInfo: result.data });
-          app.globalData.userInfo = result.data;
-        }
+        return;
+      } 
+      // 缓存中没有，调用真实后端接口（/api/user/current）
+      console.log("开始调用接口");
+      app.showLoading('加载用户信息...');
+      const result = await api.get('/api/user/current');
+      if (result.code === 200 && result.data) {
+        userInfo = result.data;
+        // 映射字段（确保后端返回字段与页面字段兼容，可根据实际后端返回调整）
+        userInfo = {
+          avatar: userInfo.avatarUrl || userInfo.avatar, // 后端字段 avatarUrl → 页面字段 avatar
+          realName: userInfo.nickName || userInfo.realName, // 后端字段 nickName → 页面字段 realName
+          qualification: userInfo.qualification || '国家认证心理咨询师', // 补充默认值
+          ...userInfo
+        };
+
+        // 更新页面、全局、缓存
+        this.setData({ userInfo });
+        app.globalData.userInfo = userInfo;
+        wx.setStorageSync('userInfo', userInfo);
       }
     } catch (error) {
       console.error('加载用户信息失败:', error);
+      app.showError('加载用户信息失败，请重新登录');
+    } finally {
+      app.hideLoading();
     }
   },
+
 
   // 加载统计数据
   async loadStatistics() {
     try {
-      const result = await mockApi.getDashboardStats();
-      if (result.code === 200) {
+      // 后续可替换为真实接口：const result = await api.get('/api/home/workbench');
+      // 暂时保留原有模拟逻辑，保证页面显示正常
+      const mockResult = {
+        code: 200,
+        data: {
+          activeClientCount: Math.floor(Math.random() * 20),
+          monthSessionCount: Math.floor(Math.random() * 50),
+          monthIncome: Math.floor(Math.random() * 10000)
+        }
+      };
+
+      if (mockResult.code === 200) {
         // 模拟总咨询数（实际应该从后端获取）
-        const totalSessionCount = (result.data.monthSessionCount || 0) * 12;
+        const totalSessionCount = (mockResult.data.monthSessionCount || 0) * 12;
         
         this.setData({
           statistics: {
-            ...result.data,
+            ...mockResult.data,
             totalSessionCount
           }
         });
@@ -96,7 +125,7 @@ Page({
   // 加载订阅信息
   async loadSubscription() {
     try {
-      // 模拟订阅信息
+      // 模拟订阅信息（后续可替换为真实接口调用）
       const subscription = {
         planName: app.globalData.subscriptionStatus === 1 ? '专业版' : '免费版',
         endTime: app.globalData.subscriptionStatus === 1 ? '2024-12-31' : null,
@@ -345,19 +374,16 @@ Page({
   logout() {
     app.showLoading('正在退出...');
     
-    // 清除登录状态
+    // 清除登录状态（调用 app 的 logout 方法，清空全局+缓存）
     app.logout();
     
-    // 跳转到登录页
+    // 跳转到登录页（替换原有跳转到首页，确保退出后需要重新登录）
     setTimeout(() => {
       app.hideLoading();
+      app.showSuccess('退出成功');
       
-      // 这里应该跳转到登录页，我们暂时先回到首页
-      wx.switchTab({
-        url: '/pages/index/index',
-        success: () => {
-          app.showSuccess('退出成功');
-        }
+      wx.redirectTo({
+        url: '/pages/login/login' // 替换为你的登录页路径，确保正确
       });
     }, 1000);
   }

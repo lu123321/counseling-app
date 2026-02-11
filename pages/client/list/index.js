@@ -1,7 +1,7 @@
 // pages/client/list/index.js
 const app = getApp();
 const utils = require('../../../utils/util.js');
-const mockApi = require('../../../utils/mockData.js').mockApi;
+const api = require('../../../utils/api.js');
 
 Page({
   data: {
@@ -69,34 +69,41 @@ Page({
     
     try {
       const params = {
-        status: this.data.activeFilter === 'all' ? null : this.data.activeFilter,
-        keyword: this.data.searchKeyword || null
+        currentPage: this.data.currentPage,
+        pageSize: this.data.pageSize,
+        keyword: this.data.searchKeyword || null,
+        sortField: this.data.sortField,
+        sortOrder: this.data.sortOrder
       };
+      // 仅当非all时，才添加status参数，避免传null
+      if (this.data.activeFilter !== 'all') {
+        params.status = Number(this.data.activeFilter);
+      }
       
-      const result = await mockApi.getClientList(params);
+      const result = await api.get('/api/client/list', params);
       
-      if (result.code === 200) {
-        let clients = result.data;
+      if (result.code === 200 && result.data) {
+        const { list: clients, totalCount } = result.data; // 后端返回list+totalCount
         
-        // 排序
-        clients = this.sortClients(clients);
+        // 原有排序逻辑可保留（也可删除，后端已排序）
+        const sortedClients = this.sortClients(clients);
         
-        // 统计各状态数量
-        this.updateStatusCounts(result.data);
+        // 统计各状态数量（原有逻辑不变）
+        this.updateStatusCounts(clients);
         
         if (reset) {
           this.setData({
-            clients,
-            totalCount: clients.length
+            clients: sortedClients,
+            totalCount: totalCount // 用后端返回的真实总条数
           });
         } else {
           this.setData({
-            clients: [...this.data.clients, ...clients],
-            totalCount: this.data.clients.length + clients.length
+            clients: [...this.data.clients, ...sortedClients],
+            totalCount: totalCount // 用后端返回的真实总条数
           });
         }
         
-        // 更新分页状态
+        // 更新分页状态：后端返回list长度 < pageSize → 无更多数据
         const hasMore = clients.length === this.data.pageSize;
         this.setData({ hasMore, loadingMore: false });
       }
@@ -109,6 +116,7 @@ Page({
       this.setData({ loadingMore: false });
     }
   },
+
 
   // 排序来访者
   sortClients(clients) {

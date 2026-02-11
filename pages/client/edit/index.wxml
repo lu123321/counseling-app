@@ -43,7 +43,7 @@
               wx:key="value"
               class="radio-item {{formData.gender == item.value ? 'active' : ''}}"
               data-value="{{item.value}}"
-              bindtap="onGenderSelect"
+              catchtap="onGenderSelect" 
             >
               <view class="radio-dot"></view>
               <text class="radio-text">{{item.label}}</text>
@@ -65,9 +65,16 @@
         
         <view class="form-group">
           <view class="form-label">出生日期</view>
-          <view class="picker-field {{formData.birthDate ? '' : 'placeholder'}}" bindtap="onBirthDateSelect">
-            {{formData.birthDate ? formData.birthDate : '请选择出生日期'}}
-          </view>
+          <picker 
+            mode="date" 
+            value="{{formData.birthDate}}" 
+            start="1900-01-01" 
+            end="{{currentDate}}"
+            bindchange="onBirthDateChange"
+            class="picker-field {{formData.birthDate ? '' : 'placeholder'}}"
+          >
+            <view>{{formData.birthDate ? formData.birthDate : '请选择出生日期'}}</view>
+          </picker>
         </view>
       </view>
 
@@ -135,9 +142,16 @@
         
         <view class="form-group">
           <view class="form-label">首次咨询日期</view>
-          <view class="picker-field {{formData.startDate ? '' : 'placeholder'}}" bindtap="onStartDateSelect">
-            {{formData.startDate ? formData.startDate : '请选择首次咨询日期'}}
-          </view>
+          <picker 
+            mode="date" 
+            value="{{formData.startDate}}" 
+            start="2020-01-01" 
+            end="2030-12-31"
+            bindchange="onStartDateChange"
+            class="picker-field {{formData.startDate ? '' : 'placeholder'}}"
+          >
+            <view>{{formData.startDate ? formData.startDate : '请选择首次咨询日期'}}</view>
+          </picker>
         </view>
         
         <view class="form-group">
@@ -158,9 +172,17 @@
         
         <view wx:if="{{formData.status == 2}}" class="form-group">
           <view class="form-label">结束咨询日期</view>
-          <view class="picker-field {{formData.endDate ? '' : 'placeholder'}}" bindtap="onEndDateSelect">
-            {{formData.endDate ? formData.endDate : '请选择结束日期'}}
-          </view>
+          <picker 
+            mode="date" 
+            value="{{formData.endDate}}" 
+            start="{{formData.startDate || '2020-01-01'}}" 
+            end="2030-12-31"
+            bindchange="onEndDateChange"
+            class="picker-field {{formData.endDate ? '' : 'placeholder'}}"
+            wx:if="{{formData.status == 2}}"
+          >
+            <view>{{formData.endDate ? formData.endDate : '请选择结束日期'}}</view>
+          </picker>
         </view>
       </view>
 

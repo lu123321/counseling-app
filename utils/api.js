@@ -1,6 +1,59 @@
-// utils/api.js
 
 const app = getApp();
+
+// 后端基础地址（你的电脑局域网IP + 后端端口）
+const baseUrl = app.globalData.baseUrl || 'http://192.168.71.3:8080';
+
+export function get(url, data = {}) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: baseUrl + url,
+      method: 'GET',
+      data: data,
+      header: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + (app.globalData.token || wx.getStorageSync('token')) // 自动携带 token
+      },
+      success: (res) => {
+        if (res.statusCode === 200) {
+          resolve(res.data);
+        } else {
+          reject(new Error('接口请求失败：' + res.errMsg));
+        }
+      },
+      fail: (err) => {
+        reject(new Error('网络请求失败：' + err.errMsg));
+      }
+    });
+  });
+}
+
+/**
+ * 封装 POST 请求
+ */
+export function post(url, data = {}) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: baseUrl + url,
+      method: 'POST',
+      data: data,
+      header: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + (app.globalData.token || wx.getStorageSync('token')) // 自动携带 token
+      },
+      success: (res) => {
+        if (res.statusCode === 200) {
+          resolve(res.data);
+        } else {
+          reject(new Error('接口请求失败：' + res.errMsg));
+        }
+      },
+      fail: (err) => {
+        reject(new Error('网络请求失败：' + err.errMsg));
+      }
+    });
+  });
+}
 
 /**
  * API请求封装
@@ -116,35 +169,6 @@ function handleUnauthorized() {
   });
 }
 
-/**
- * GET请求
- * @param {string} url - 请求URL
- * @param {Object} data - 请求参数
- * @param {Object} options - 其他选项
- */
-function get(url, data = {}, options = {}) {
-  return request({
-    url,
-    method: 'GET',
-    data,
-    ...options
-  });
-}
-
-/**
- * POST请求
- * @param {string} url - 请求URL
- * @param {Object} data - 请求数据
- * @param {Object} options - 其他选项
- */
-function post(url, data = {}, options = {}) {
-  return request({
-    url,
-    method: 'POST',
-    data,
-    ...options
-  });
-}
 
 /**
  * PUT请求
@@ -257,22 +281,44 @@ function downloadFile(url, options = {}) {
     });
   }
   
-  return new Promise((resolve, reject) => {
-    wx.downloadFile({
-      url,
+   // 返回Promise
+   return new Promise((resolve, reject) => {
+    wx.request({
+      // 优化：如果url已包含http，直接使用（用于文件下载等），否则拼接baseUrl
+      url: url.startsWith('http') ? url : `${app.globalData.baseUrl}${url}`,
+      method,
+      data,
+      header: headers,
       success: (res) => {
         if (showLoading) {
           wx.hideLoading();
         }
         
-        if (res.statusCode === 200) {
-          resolve(res.tempFilePath);
-        } else {
+        const { statusCode, data: responseData } = res;
+        
+        // 状态码处理
+        if (statusCode >= 200 && statusCode < 300) {
+          // 成功响应
+          resolve(responseData);
+        } else if (statusCode === 401) {
+          // 未授权，跳转到登录
+          handleUnauthorized();
+          reject(new Error('未授权，请重新登录'));
+        } else if (statusCode === 403) {
+          // 权限不足
           wx.showToast({
-            title: '下载失败',
+            title: '权限不足',
             icon: 'error'
           });
-          reject(new Error('下载失败'));
+          reject(new Error('权限不足'));
+        } else {
+          // 其他错误
+          const errorMsg = responseData.msg || `请求失败，状态码：${statusCode}`;
+          wx.showToast({
+            title: errorMsg,
+            icon: 'error'
+          });
+          reject(new Error(errorMsg));
         }
       },
       fail: (error) => {
@@ -280,11 +326,15 @@ function downloadFile(url, options = {}) {
           wx.hideLoading();
         }
         
+        console.error('请求失败:', error);
+        
+        // 网络错误处理
         wx.showToast({
-          title: '下载失败',
+          title: '网络连接失败，请检查网络',
           icon: 'error'
         });
-        reject(new Error('下载失败'));
+        
+        reject(new Error('网络连接失败'));
       }
     });
   });

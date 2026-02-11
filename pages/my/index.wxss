@@ -1,5 +1,6 @@
 /* pages/my/index.wxss - 优化间距版 */
 @import "../../styles/variable.wxss";
+@import "../../styles/common.wxss";
 
 .my-page {
   min-height: 100vh;

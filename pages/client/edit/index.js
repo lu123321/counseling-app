@@ -2,10 +2,12 @@
 const app = getApp();
 const utils = require('../../../utils/util.js');
 const validate = require('../../../utils/validate.js');
-const mockApi = require('../../../utils/mockData.js').mockApi;
+const api = require('../../../utils/api.js');
 
 Page({
   data: {
+    // 新增这一行：提前计算当前日期，供WXML绑定
+    currentDate: utils.formatDate(new Date(), 'yyyy-MM-dd'),
     // 页面模式
     isEditMode: false,
     clientId: null,
@@ -15,7 +17,7 @@ Page({
     formData: {
       // 基本信息
       name: '',
-      gender: null,
+      gender: 0,
       age: '',
       birthDate: '',
       
@@ -111,12 +113,13 @@ Page({
     app.showLoading('加载中...');
     
     try {
-      const result = await mockApi.getClientDetail(id);
+      // 调用真实详情接口：GET /api/client/detail/{id}
+      const result = await api.get(`/api/client/detail/${id}`);
       
       if (result.code === 200) {
         const clientData = result.data;
         
-        // 处理标签
+        // 原有标签处理逻辑不变...
         const tags = clientData.tags || [];
         const selectedTags = {};
         const customTags = [];
@@ -129,7 +132,7 @@ Page({
           }
         });
         
-        // 设置表单数据
+        // 设置表单数据（原有逻辑不变，字段完全匹配）
         this.setData({
           'formData.name': clientData.name || '',
           'formData.gender': clientData.gender || null,
@@ -149,11 +152,10 @@ Page({
           selectedTags: selectedTags
         });
         
-        // 验证表单
         this.validateForm();
       } else {
         wx.showToast({
-          title: '加载失败',
+          title: result.msg || '加载失败',
           icon: 'error'
         });
       }
@@ -186,47 +188,44 @@ Page({
   validateForm() {
     const { formData } = this.data;
     const errors = {};
-    let isValid = true;
-    
+    let hasError = false;
     // 1. 验证姓名（必填）
     if (!formData.name || formData.name.trim() === '') {
       errors.name = '姓名不能为空';
-      isValid = false;
+      hasError = true;
     } else if (formData.name.length > 20) {
       errors.name = '姓名不能超过20个字符';
-      isValid = false;
+      hasError = true;
     }
     
     // 2. 验证联系电话（如果填写了）
     if (formData.contactPhone && !validate.validatePhone(formData.contactPhone)) {
       errors.contactPhone = '联系电话格式不正确';
-      isValid = false;
+      hasError = true;
     }
     
     // 3. 验证紧急联系电话（如果填写了）
     if (formData.emergencyPhone && !validate.validatePhone(formData.emergencyPhone)) {
       errors.emergencyPhone = '紧急联系电话格式不正确';
-      isValid = false;
+      hasError = true;
     }
     
     // 4. 验证年龄（如果填写了）
     if (formData.age && (formData.age < 0 || formData.age > 150)) {
       errors.age = '年龄必须在0-150之间';
-      isValid = false;
+      hasError = true;
     }
     
     // 5. 验证结束日期（如果状态是已结案）
     if (formData.status === 2 && !formData.endDate) {
       errors.endDate = '已结案必须填写结束日期';
-      isValid = false;
+      hasError = true;
     }
-    
     this.setData({
       formErrors: errors,
-      isFormValid: isValid
+      isFormValid: !hasError
     });
-    
-    return isValid;
+    return !hasError;
   },
 
   // 验证单个字段
@@ -326,8 +325,18 @@ Page({
 
   // 姓名输入
   onNameInput(e) {
+    console.log('onNameInput 被触发，输入值为:', e.detail.value);
     this.setData({
       'formData.name': e.detail.value
+    }, () => {
+      // 在 setData 回调中执行验证，确保数据已更新
+      console.log('formData.name 已更新为:', this.data.formData.name);
+      
+      // 立即验证
+      const isValid = this.validateForm();
+      console.log('validateForm 返回值:', isValid);
+      console.log('isFormValid 值:', this.data.isFormValid);
+      console.log('formErrors:', this.data.formErrors);
     });
   },
 
@@ -347,18 +356,9 @@ Page({
   },
 
   // 出生日期选择
-  onBirthDateSelect() {
-    const currentDate = this.data.formData.birthDate || utils.formatDate(new Date(), 'yyyy-MM-dd');
-    
-    wx.showDatePicker({
-      currentDate: currentDate,
-      startDate: '1900-01-01',
-      endDate: utils.formatDate(new Date(), 'yyyy-MM-dd'),
-      success: (res) => {
-        this.setData({
-          'formData.birthDate': res.date
-        });
-      }
+  onBirthDateChange(e) {
+    this.setData({
+      'formData.birthDate': e.detail.value // picker返回的直接是yyyy-MM-dd字符串，无需处理
     });
   },
 
@@ -390,21 +390,12 @@ Page({
     });
   },
 
-  // 首次咨询日期选择
-  onStartDateSelect() {
-    const currentDate = this.data.formData.startDate || utils.formatDate(new Date(), 'yyyy-MM-dd');
-    
-    wx.showDatePicker({
-      currentDate: currentDate,
-      startDate: '2020-01-01',
-      endDate: '2030-12-31',
-      success: (res) => {
-        this.setData({
-          'formData.startDate': res.date
-        });
-      }
-    });
-  },
+// 2. 首次咨询日期选择变化
+onStartDateChange(e) {
+  this.setData({
+    'formData.startDate': e.detail.value
+  });
+},
 
   // 状态选择
   onStatusSelect(e) {
@@ -425,22 +416,13 @@ Page({
   },
 
   // 结束日期选择
-  onEndDateSelect() {
-    const currentDate = this.data.formData.endDate || utils.formatDate(new Date(), 'yyyy-MM-dd');
-    const startDate = this.data.formData.startDate;
-    
-    wx.showDatePicker({
-      currentDate: currentDate,
-      startDate: startDate || '2020-01-01',
-      endDate: '2030-12-31',
-      success: (res) => {
-        this.setData({
-          'formData.endDate': res.date
-        });
-        this.validateForm();
-      }
-    });
-  },
+// 3. 结束咨询日期选择变化
+onEndDateChange(e) {
+  this.setData({
+    'formData.endDate': e.detail.value
+  });
+  this.validateForm(); // 验证已结案的结束日期必填
+},
 
   // 标签切换
   onTagToggle(e) {
@@ -611,37 +593,14 @@ Page({
 
   // 模拟创建来访者
   async createClient(data) {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve({
-          code: 200,
-          data: {
-            id: Date.now(),
-            ...data,
-            clientNo: 'C' + Date.now().toString().slice(-6),
-            createTime: new Date().toISOString(),
-            updateTime: new Date().toISOString()
-          },
-          message: '创建成功'
-        });
-      }, 1500);
-    });
+    // 调用真实新增接口：POST /api/client/create
+    return await api.post('/api/client/create', data);
   },
 
   // 模拟更新来访者
   async updateClient(data) {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve({
-          code: 200,
-          data: {
-            ...data,
-            updateTime: new Date().toISOString()
-          },
-          message: '更新成功'
-        });
-      }, 1500);
-    });
+    // 调用真实编辑接口：PUT /api/client/update
+    return await api.put('/api/client/update', data);
   },
 
   // 处理保存成功
